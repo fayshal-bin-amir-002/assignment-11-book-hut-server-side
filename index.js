@@ -48,7 +48,17 @@ async function run() {
                     secure: process.env.NODE_ENV === 'production' ? true : false,
                     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict'
                 })
-                .send({success: true})
+                .send({ success: true })
+        })
+
+        app.post('/logout', async (req, res) => {
+            res
+                .clearCookie('token', {
+                    maxAge: 0,
+                    secure: process.env.NODE_ENV === 'production' ? true : false,
+                    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict'
+                })
+                .send({ success: true });
         })
 
         // Send a ping to confirm a successful connection
