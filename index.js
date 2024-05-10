@@ -76,6 +76,13 @@ async function run() {
                 .send({ success: true });
         })
 
+        app.get("/get-book/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await booksCollection.findOne(query);
+            res.send(result);
+        })
+
         app.get("/books", async (req, res) => {
             const bookCategory = req?.query?.category;
             const query = { category: { $regex: bookCategory, $options: 'i' } };
@@ -90,13 +97,25 @@ async function run() {
             res.send(result);
         })
 
-        app.get("/borrow-books", verifyToken,  async(req, res) => {
-            if(req.user?.email !== req.query?.email) {
+        app.get("/borrow-books", verifyToken, async (req, res) => {
+            if (req.user?.email !== req.query?.email) {
                 return res.status(403).send({ message: 'Forbidden' });
             }
             const email = req.query?.email;
             const query = { 'borrower.borrowerEmail': email };
             const result = await borrowedBooksCollection.find(query).toArray();
+            res.send(result);
+        })
+
+        app.get("/allBooks", verifyToken, async (req, res) => {
+            if (req.user?.email !== req.query?.email) {
+                return res.status(403).send({ message: 'Forbidden' });
+            }
+            let query = {};
+            if (req.query.showAvailable === "true") {
+                query = { quantity: { $gt: 0 } }
+            }
+            const result = await booksCollection.find(query).toArray();
             res.send(result);
         })
 
@@ -112,8 +131,8 @@ async function run() {
                 'borrower.borrowingBookId': borrowedBook.borrower.borrowingBookId,
                 'borrower.borrowerEmail': borrowedBook.borrower.borrowerEmail,
             }
-            const numOfBorrowedBook = await borrowedBooksCollection.countDocuments({ 'borrower.borrowerEmail': borrowedBook.borrower.borrowerEmail});
-            if(numOfBorrowedBook === 3) {
+            const numOfBorrowedBook = await borrowedBooksCollection.countDocuments({ 'borrower.borrowerEmail': borrowedBook.borrower.borrowerEmail });
+            if (numOfBorrowedBook === 3) {
                 return res.status(400).send('You can not borrow book now!');
             }
             const exists = await borrowedBooksCollection.findOne(query);
@@ -138,7 +157,20 @@ async function run() {
             res.send(result);
         })
 
-        app.delete('/delete-borrowedBook/:id', async(req, res) => {
+        app.patch("/update-book/:id", async (req, res) => {
+            const updatedBook = req.body;
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const updateBook = {
+                $set: {
+                    ...updatedBook
+                },
+            };
+            const result = await booksCollection.updateOne(filter, updateBook);
+            res.send(result);
+        })
+
+        app.delete('/delete-borrowedBook/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await borrowedBooksCollection.deleteOne(query);
