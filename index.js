@@ -35,8 +35,8 @@ async function run() {
         // Connect the client to the server	(optional starting in v4.7)
         // await client.connect();
 
-        const database = client.db("gadgetsDB");
-        const productsCollection = database.collection("products");
+        const database = client.db("bookHutDB");
+        const booksCollection = database.collection("books");
 
         //token request
         app.post('/jwt', async (req, res) => {
@@ -59,6 +59,17 @@ async function run() {
                     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict'
                 })
                 .send({ success: true });
+        })
+
+        app.get("/books", async(req, res) => {
+            const bookCategory = req.query;
+            console.log(bookCategory);
+        })
+
+        app.post("/add-book", async(req, res) => {
+            const newBook = req.body;
+            const result = await booksCollection.insertOne(newBook);
+            res.send(result);
         })
 
         // Send a ping to confirm a successful connection
