@@ -112,9 +112,13 @@ async function run() {
                 'borrower.borrowingBookId': borrowedBook.borrower.borrowingBookId,
                 'borrower.borrowerEmail': borrowedBook.borrower.borrowerEmail,
             }
+            const numOfBorrowedBook = await borrowedBooksCollection.countDocuments({ 'borrower.borrowerEmail': borrowedBook.borrower.borrowerEmail});
+            if(numOfBorrowedBook === 3) {
+                return res.status(400).send('You can not borrow book now!');
+            }
             const exists = await borrowedBooksCollection.findOne(query);
             if (exists) {
-                return res.status(400).send('Already added in borrowed book list.')
+                return res.status(400).send('Already added in borrowed book list.');
             }
             const result = await borrowedBooksCollection.insertOne(borrowedBook);
             res.send(result);
@@ -124,6 +128,13 @@ async function run() {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await booksCollection.updateOne(query, { $inc: { quantity: -1 } });
+            res.send(result);
+        })
+
+        app.patch("/update-quantity-increase/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await booksCollection.updateOne(query, { $inc: { quantity: 1 } });
             res.send(result);
         })
 
