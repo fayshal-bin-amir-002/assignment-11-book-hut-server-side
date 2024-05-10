@@ -30,6 +30,20 @@ const client = new MongoClient(uri, {
     }
 });
 
+const verifyToken = async (req, res, next) => {
+    const token = req.cookies.token;
+    if (!token) {
+        return res.status(401).send({ message: 'Unauthorized' });
+    }
+    jwt.verify(token, secret_token, (error, decoded) => {
+        if (error) {
+            return res.status(401).send({ message: 'Unauthorized' });
+        }
+        req.user = decoded;
+        next();
+    })
+}
+
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
@@ -61,12 +75,18 @@ async function run() {
                 .send({ success: true });
         })
 
-        app.get("/books", async(req, res) => {
-            const bookCategory = req.query;
-            console.log(bookCategory);
+        app.get("/books", verifyToken, async (req, res) => {
+            const bookCategory = req?.query?.category;
+            const email = req?.query?.email;
+            if(req?.user?.email !== email) {
+                return res.status(403).send({ message: 'Forbidden' });
+            }
+            const query = { category: { $regex: bookCategory, $options: 'i' } };
+            const result = await booksCollection.find(query).toArray();
+            res.send(result);
         })
 
-        app.post("/add-book", async(req, res) => {
+        app.post("/add-book", async (req, res) => {
             const newBook = req.body;
             const result = await booksCollection.insertOne(newBook);
             res.send(result);
