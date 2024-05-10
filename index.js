@@ -1,4 +1,4 @@
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
@@ -51,6 +51,7 @@ async function run() {
 
         const database = client.db("bookHutDB");
         const booksCollection = database.collection("books");
+        const borrowedBooksCollection = database.collection("borrowedBooks");
 
         //token request
         app.post('/jwt', async (req, res) => {
@@ -75,20 +76,44 @@ async function run() {
                 .send({ success: true });
         })
 
-        app.get("/books", verifyToken, async (req, res) => {
+        app.get("/books", async (req, res) => {
             const bookCategory = req?.query?.category;
-            const email = req?.query?.email;
-            if(req?.user?.email !== email) {
-                return res.status(403).send({ message: 'Forbidden' });
-            }
             const query = { category: { $regex: bookCategory, $options: 'i' } };
             const result = await booksCollection.find(query).toArray();
+            res.send(result);
+        })
+
+        app.get("/book-details/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await booksCollection.findOne(query);
             res.send(result);
         })
 
         app.post("/add-book", async (req, res) => {
             const newBook = req.body;
             const result = await booksCollection.insertOne(newBook);
+            res.send(result);
+        })
+
+        app.post("/borrow-books", async (req, res) => {
+            const borrowedBook = req.body;
+            const query = {
+                'borrower.borrowingBookId': borrowedBook.borrower.borrowingBookId,
+                'borrower.borrowerEmail': borrowedBook.borrower.borrowerEmail,
+            }
+            const exists = await borrowedBooksCollection.findOne(query);
+            if (exists) {
+                return res.status(400).send('Already added in borrowed book list.')
+            }
+            const result = await borrowedBooksCollection.insertOne(borrowedBook);
+            res.send(result);
+        })
+
+        app.patch("/update-quantity/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await booksCollection.updateOne(query, { $inc: { quantity: -1 } });
             res.send(result);
         })
 
