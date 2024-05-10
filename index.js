@@ -90,6 +90,16 @@ async function run() {
             res.send(result);
         })
 
+        app.get("/borrow-books", verifyToken,  async(req, res) => {
+            if(req.user?.email !== req.query?.email) {
+                return res.status(403).send({ message: 'Forbidden' });
+            }
+            const email = req.query?.email;
+            const query = { 'borrower.borrowerEmail': email };
+            const result = await borrowedBooksCollection.find(query).toArray();
+            res.send(result);
+        })
+
         app.post("/add-book", async (req, res) => {
             const newBook = req.body;
             const result = await booksCollection.insertOne(newBook);
@@ -114,6 +124,13 @@ async function run() {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await booksCollection.updateOne(query, { $inc: { quantity: -1 } });
+            res.send(result);
+        })
+
+        app.delete('/delete-borrowedBook/:id', async(req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await borrowedBooksCollection.deleteOne(query);
             res.send(result);
         })
 
