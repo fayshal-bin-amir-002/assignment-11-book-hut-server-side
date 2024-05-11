@@ -52,6 +52,7 @@ async function run() {
         const database = client.db("bookHutDB");
         const booksCollection = database.collection("books");
         const borrowedBooksCollection = database.collection("borrowedBooks");
+        const happyUserCollection = database.collection("happyUsers");
 
         //token request
         app.post('/jwt', async (req, res) => {
@@ -84,8 +85,30 @@ async function run() {
         })
 
         app.get("/books", async (req, res) => {
-            const bookCategory = req?.query?.category;
-            const query = { category: { $regex: bookCategory, $options: 'i' } };
+            const query1 = { category: 'Biography' };
+            const query2 = { category: 'History' };
+            const query3 = { category: 'Health & Fitness' };
+            const query4 = { category: 'Travel' };
+            const query5 = { category: 'Science & Math' };
+            const result1 = await booksCollection.countDocuments(query1);
+            const result2 = await booksCollection.countDocuments(query2);
+            const result3 = await booksCollection.countDocuments(query3);
+            const result4 = await booksCollection.countDocuments(query4);
+            const result5 = await booksCollection.countDocuments(query5);
+            const result = {
+                'biography': result1,
+                'history': result2,
+                'health & fitness': result3,
+                'travel': result4,
+                'science & math': result5
+
+            }
+            res.send(result);
+        })
+
+        app.get("/book-category/:category", async(req, res) => {
+            const category = req.params.category;
+            const query = { category: {$regex: category, $options: 'i'} };
             const result = await booksCollection.find(query).toArray();
             res.send(result);
         })
@@ -119,7 +142,15 @@ async function run() {
             res.send(result);
         })
 
-        app.post("/add-book", async (req, res) => {
+        app.get("/users-card", async (req, res) => {
+            const result = await happyUserCollection.find().toArray();
+            res.send(result);
+        })
+
+        app.post("/add-book", verifyToken, async (req, res) => {
+            if (req.user?.email !== req.query?.email) {
+                return res.status(403).send({ message: 'Forbidden' });
+            }
             const newBook = req.body;
             const result = await booksCollection.insertOne(newBook);
             res.send(result);
