@@ -9,7 +9,9 @@ const port = process.env.PORT || 3000;
 
 app.use(cors({
     origin: [
-        'http://localhost:5174'
+        'http://localhost:5173',
+        'http://localhost:5174',
+        'https://book-hut-digital-library.netlify.app'
     ],
     credentials: true
 }));
@@ -19,6 +21,7 @@ app.use(cookieParser());
 const user = process.env.DB_USER;
 const pass = process.env.DB_PASS;
 const secret_token = process.env.SECRET_ACCESS_TOKEN;
+const librarianEmail = process.env.ACCESS_LIBRARIANEMAIL;
 
 const uri = `mongodb+srv://${user}:${pass}@cluster0.0hiczfr.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -148,7 +151,7 @@ async function run() {
         })
 
         app.post("/add-book", verifyToken, async (req, res) => {
-            if (req.user?.email !== req.query?.email) {
+            if (req.user?.email !== req.query?.email || librarianEmail !== req.query?.email || librarianEmail !== req.user?.email) {
                 return res.status(403).send({ message: 'Forbidden' });
             }
             const newBook = req.body;
