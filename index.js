@@ -109,9 +109,9 @@ async function run() {
             res.send(result);
         })
 
-        app.get("/book-category/:category", async(req, res) => {
+        app.get("/book-category/:category", async (req, res) => {
             const category = req.params.category;
-            const query = { category: {$regex: category, $options: 'i'} };
+            const query = { category: { $regex: category, $options: 'i' } };
             const result = await booksCollection.find(query).toArray();
             res.send(result);
         })
@@ -137,12 +137,30 @@ async function run() {
             if (req.user?.email !== req.query?.email) {
                 return res.status(403).send({ message: 'Forbidden' });
             }
+            const search = req.query.bookName;
             let query = {};
             if (req.query.showAvailable === "true") {
-                query = { quantity: { $gt: 0 } }
+                query = {
+                    quantity: { $gt: 0 },
+                    book_name: { $regex: search, $options: 'i' }
+                }
+            } else {
+                query = {
+                    book_name: { $regex: search, $options: 'i' }
+                }
             }
-            const result = await booksCollection.find(query).toArray();
-            res.send(result);
+            const skip = parseInt(req.query.page);
+            const limit = parseInt(req.query.size);
+
+            // const bookName = search ? { book_name: { $regex: search, $options: 'i' } } : {};
+            const result = await booksCollection.find(query).skip(skip * limit).limit(limit).toArray();
+            const total = await booksCollection.countDocuments(query);
+            res.send({result, total});
+        })
+
+        app.get("/totalBooks", async (req, res) => {
+            const result = await booksCollection.countDocuments();
+            res.send({ total: result });
         })
 
         app.get("/users-card", async (req, res) => {
